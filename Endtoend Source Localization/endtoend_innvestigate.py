@@ -17,7 +17,7 @@ import innvestigate.utils as iutils
 import innvestigate.layers as ilayers
 from endtoend_data_provider import create_endtoend_dataset
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 # Load dataset
@@ -103,14 +103,14 @@ def analysis_zero_samples(test_data, percentages, analysis_type):
 
         rmse_zero_samples = []
         for data in test_data:
-            signal = data[0]
+            signal = data[0]  # (1280, 8)
             source = data[1]
 
             indices_max_values = []
             if analysis_type == 'lrp':
-                input_signal = tf.expand_dims(signal, axis=0)
-                analysis = analyzer.analyze(input_signal)
-                result_lrp = tf.transpose(tf.squeeze(analysis))
+                input_signal = tf.expand_dims(signal, axis=0)    # (1, 1280, 8)
+                analysis = analyzer.analyze(input_signal)        # (1, 1280, 8)
+                result_lrp = tf.transpose(tf.squeeze(analysis))  # (8, 1280)
 
                 for i in range(8):
                     indices_max_values.append(find_max_indexes(result_lrp[i].numpy().tolist(), percentage))
@@ -119,7 +119,7 @@ def analysis_zero_samples(test_data, percentages, analysis_type):
                 for i in range(8):
                     indices_max_values.append(random.sample(range(0, 1279), percentage))
 
-            input_sig = tf.transpose(signal)
+            input_sig = tf.transpose(signal)  # (8, 1280)
             signals_zero_samples = input_sig.numpy().tolist()
 
             for i in range(8):
@@ -130,7 +130,7 @@ def analysis_zero_samples(test_data, percentages, analysis_type):
 
             signals_zero_samples = tf.convert_to_tensor(signals_zero_samples)
 
-            signals_zero_samples = tf.expand_dims(tf.transpose(signals_zero_samples), axis=0)
+            signals_zero_samples = tf.expand_dims(tf.transpose(signals_zero_samples), axis=0)  # (1, 1280, 8)
             prediction = model.predict(signals_zero_samples)
 
             mse = mean_squared_error(source.numpy().tolist(), prediction[0])

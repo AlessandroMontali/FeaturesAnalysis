@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pyroomacoustics as pra
 import tensorflow as tf
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
