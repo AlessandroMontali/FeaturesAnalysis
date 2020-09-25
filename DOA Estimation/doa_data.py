@@ -2,13 +2,18 @@ import numpy as np
 import pyroomacoustics as pra
 import tensorflow as tf
 import math
+import random
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
-# Generate data and save TFRecord file
+data_type = 'speech'
 
-filename = '/nas/home/amontali/data_doa/doa.tfrecord'
+# Generate data and save TFRecord file
+if data_type == 'noise':
+    filename = '/nas/home/amontali/data_doa/doa.tfrecord'
+else:
+    filename = '/nas/home/amontali/data_doa/doa_speech.tfrecord'
 
 # Specify reverberation and noise
 T60 = 0.2
@@ -40,14 +45,17 @@ corners = np.array([[0, 0], [0, 8.2], [3.6, 8.2], [3.6, 0]]).T  # [x,y]
 
 # Specify microphone position and source-array distances
 mic_center = np.array([1.8, 4.5, 0.0])
-distances = [1, 2]
+if data_type == 'noise':
+    distances = [1, 2]
+else:
+    distances = [1.5]
 
 # DOA classes
 DOA_range = [0, 181]
 resolution = 5
 DOAs = np.arange(DOA_range[0], DOA_range[1], resolution)
 
-# Specify angles for source generation ((30-150)*2 -> 240 sources)
+# Specify angles for source generation ((30-150)*2 -> 240 sources for noise & (30-150) -> 120 for speech)
 angles = np.arange(30, 150, 1)
 N = len(angles) * len(distances)
 
@@ -80,10 +88,17 @@ for i in range(N):
     noise = np.random.normal(0, 1, 10000)
     noise_signals.append(noise)
 
+# Download speech dataset
+corpus = pra.datasets.CMUArcticCorpus(download=True, speaker=['bdl'])
+
 with tf.io.TFRecordWriter(filename) as writer:
     for j in range(0, N, 1):
-        signal = noise_signals[j]
-        fs = 16000
+        if data_type == 'noise':
+            signal = noise_signals[j]
+            fs = 16000
+        else:
+            signal = corpus[j].data
+            fs = corpus[j].fs
 
         # Add source to 3D room
         source_position = sources_pos[j]
@@ -138,7 +153,12 @@ with tf.io.TFRecordWriter(filename) as writer:
                                     )
         print("Phase signals shape: ", sig_stft_phase.shape)
 
-        for i in range(sig_stft_phase.shape[2]):
+        if data_type == 'noise':
+            slicing_indexes = np.arange(0, sig_stft_phase.shape[2] - 1, 1)
+        else:
+            slicing_indexes = random.sample(range(0, sig_stft_phase.shape[2] - 1), 102)
+
+        for i in slicing_indexes:
             # Slicing
             phase_signal = tf.slice(
                 sig_stft_phase,
